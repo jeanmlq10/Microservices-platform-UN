@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Plataforma de Microservicios UN</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🚀 Plataforma de Microservicios UN</h1>
+        <p>Crea, administra y elimina microservicios dinámicos con Docker</p>
+    </header>
+
+    <main>
+        <!-- ═══ Sección: Crear Nuevo Microservicio ═══ -->
+        <section class="card" id="create-section">
+            <h2>➕ Crear Nuevo Microservicio</h2>
+            <form id="create-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="service-name">Nombre</label>
+                        <input type="text" id="service-name" placeholder="ej: hola-mundo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="service-language">Lenguaje</label>
+                        <select id="service-language" required>
+                            <option value="python">🐍 Python</option>
+                            <option value="node">🟢 Node.js</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="service-description">Descripción</label>
+                    <input type="text" id="service-description" placeholder="ej: Mi primer microservicio">
+                </div>
+                <div class="form-group">
+                    <label for="service-code">Código Fuente</label>
+                    <textarea id="service-code" rows="10" placeholder="Pega tu código aquí..." required></textarea>
+                </div>
+                <button type="submit" id="btn-create">🚀 Crear Microservicio</button>
+            </form>
+            <div id="create-status" class="status-message hidden"></div>
+        </section>
+
+        <!-- ═══ Sección: Microservicios Activos ═══ -->
+        <section class="card" id="services-section">
+            <h2>📦 Microservicios Registrados</h2>
+            <div id="services-list">
+                <p class="empty-state">No hay microservicios creados aún. ¡Crea el primero! 👆</p>
+            </div>
+        </section>
+
+        <!-- ═══ Sección: Probar Endpoint ═══ -->
+        <section class="card hidden" id="test-section">
+            <h2>🧪 Probar Microservicio</h2>
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label for="test-url">URL del Endpoint</label>
+                    <input type="text" id="test-url" placeholder="/services/hola-mundo?name=Mundo" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="test-params">Parámetros (query string)</label>
+                    <input type="text" id="test-params" placeholder="name=Mundo&age=25">
+                </div>
+            </div>
+            <button id="btn-test">▶️ Ejecutar</button>
+            <pre id="test-result" class="result-box"></pre>
+        </section>
+    </main>
+
+    <footer>
+        <p>🐳 Plataforma de Microservicios — Universidad del Norte — 2026</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+version: "3.8"
+
+# ═══════════════════════════════════════════════════════════
+#  Plataforma de Microservicios Dinámicos - UN
+#  Levantar con: docker-compose up --build
+# ═══════════════════════════════════════════════════════════
+
+services:
+  # ─── Nginx Reverse Proxy (Punto de entrada principal) ───
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx-proxy
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      # Configuraciones dinámicas generadas por el backend
+      - nginx-dynamic:/etc/nginx/dynamic
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  # ─── Backend API (Motor de Microservicios) ───
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: backend-api
+    environment:
+      - FLASK_DEBUG=${FLASK_DEBUG:-false}
+      - DOCKER_NETWORK=microservices-net
+      - BASE_PORT=${BASE_PORT:-9001}
+      - NGINX_DYNAMIC_DIR=/shared/nginx-dynamic
+      - NGINX_CONTAINER_NAME=nginx-proxy
+      - TEMPLATES_DIR=/app/templates
+    volumes:
+      # Montar Docker socket para gestionar contenedores
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Compartir directorio de configs dinámicas con Nginx
+      - nginx-dynamic:/shared/nginx-dynamic
+      # Montar templates
+      - ./templates:/app/templates:ro
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  # ─── Frontend (Dashboard Web) ───
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-dashboard
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+# ─── Red personalizada ───
+networks:
+  microservices-net:
+    name: microservices-net
+    driver: bridge
+
+# ─── Volúmenes compartidos ───
+volumes:
+  nginx-dynamic:
+    driver: local

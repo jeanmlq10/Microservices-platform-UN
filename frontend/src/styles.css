@@ -1,0 +1,344 @@
+/* ═══════════════════════════════════════════════════════════
+   styles.css - Estilos del Dashboard de Microservicios UN
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --warning: #f59e0b;
+    --info: #0ea5e9;
+    --bg: #f1f5f9;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 12px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+}
+
+/* ─── Header ─── */
+header {
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+header p {
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+/* ─── Main ─── */
+main {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* ─── Cards ─── */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
+}
+
+.card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+/* ─── Formulario ─── */
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.3rem;
+    color: var(--text-muted);
+}
+
+input[type="text"],
+select,
+textarea {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+textarea {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* ─── Botones ─── */
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+#btn-create,
+#btn-test {
+    background: var(--primary);
+    color: white;
+    padding: 0.7rem 1.5rem;
+    width: 100%;
+}
+
+#btn-create:hover,
+#btn-test:hover {
+    background: var(--primary-hover);
+}
+
+#btn-create:disabled {
+    background: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.btn-small {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+}
+
+.btn-test {
+    background: var(--info);
+    color: white;
+}
+
+.btn-enable {
+    background: var(--success);
+    color: white;
+}
+
+.btn-disable {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-delete {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-small:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+/* ─── Lista de servicios ─── */
+.service-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+}
+
+.service-card:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.service-card.running {
+    border-left: 4px solid var(--success);
+}
+
+.service-card.stopped {
+    border-left: 4px solid var(--danger);
+    opacity: 0.7;
+}
+
+.service-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot-green {
+    background: var(--success);
+}
+
+.dot-red {
+    background: var(--danger);
+}
+
+.badge {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.badge-python {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-node {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+code {
+    background: var(--bg);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: var(--primary);
+}
+
+.service-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.service-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+/* ─── Estado ─── */
+.status-message {
+    margin-top: 1rem;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.status-message.success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-message.info {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+/* ─── Resultado de prueba ─── */
+.result-box {
+    background: #1e293b;
+    color: #a5f3fc;
+    padding: 1rem;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    margin-top: 1rem;
+    min-height: 60px;
+    white-space: pre-wrap;
+}
+
+/* ─── Estados vacíos ─── */
+.empty-state,
+.error-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.error-state {
+    color: var(--danger);
+}
+
+/* ─── Footer ─── */
+footer {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* ─── Utilidades ─── */
+.hidden {
+    display: none !important;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+    .form-row {
+        flex-direction: column;
+    }
+
+    .service-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .service-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    header h1 {
+        font-size: 1.4rem;
+    }
+}

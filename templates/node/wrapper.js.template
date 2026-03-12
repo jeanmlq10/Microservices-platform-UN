@@ -1,0 +1,33 @@
+/**
+ * wrapper/server.js - Wrapper HTTP para microservicios Node.js del usuario.
+ * Envuelve la función process() del usuario en un servidor Express.
+ */
+
+const express = require("express");
+const app = express();
+const PORT = 8080;
+
+// Parsear JSON body
+app.use(express.json());
+
+// Importar la función process() del código del usuario
+const process = require("./user_code");
+
+// Ruta principal
+app.all("/", (req, res) => {
+    try {
+        // Obtener datos del query string o body JSON
+        const data = req.method === "POST" ? req.body || {} : req.query || {};
+
+        // Llamar a la función del usuario
+        const result = process(data);
+
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Microservicio corriendo en puerto ${PORT}`);
+});

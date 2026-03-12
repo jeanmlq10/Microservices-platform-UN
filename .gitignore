@@ -1,0 +1,36 @@
+# Archivos Word
+*.docx
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.egg
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env (no commitear en producción, pero ok para este proyecto educativo)
+# .env
+
+# Nginx dynamic configs (se generan en runtime)
+nginx/dynamic/*.conf
+!nginx/dynamic/.gitkeep
+.env
