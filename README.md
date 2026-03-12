@@ -26,8 +26,8 @@
 
 | Integrante | Rol | Rama de Trabajo |
 |------------|-----|-----------------|
-| **Valentina Schotborgh** | 🔧 Infraestructura & Proxy | `feature/infrastructure` |
-| **Jean Marthé** | ⚙️ Backend / Motor de Microservicios | `feature/backend-api` |
+| **Jean Marthé** | 🔧 Infraestructura & Proxy | `feature/infrastructure` |
+| **Valentina Schotborgh** | ⚙️ Backend / Motor de Microservicios | `feature/backend-api` |
 | **Oscar Gil** | 🎨 Frontend / Dashboard | `feature/frontend` |
 | **Alberto Niebles** | 🧪 Templates, Testing & Documentación | `feature/templates-docs` |
 
@@ -189,14 +189,14 @@ Microservices-platform-UN/
 ├── 📄 README.md                         # Este archivo
 ├── 📄 .gitignore                        # Archivos ignorados por Git
 │
-├── 📂 nginx/                            # ═══ PERSONA 1: Valentina Schotborgh ═══
+├── 📂 nginx/                            # ═══ PERSONA 1: Jean Marthé ═══
 │   ├── 📄 Dockerfile                    # Imagen personalizada de Nginx
 │   ├── 📄 nginx.conf                    # Configuración principal de Nginx
 │   ├── 📄 default.conf                  # Server block principal con rutas base
 │   └── 📂 dynamic/                      # Configs generadas dinámicamente
 │       └── 📄 .gitkeep                  # (se generan en runtime para cada microservicio)
 │
-├── 📂 backend/                          # ═══ PERSONA 2: Jean Marthé ═══
+├── 📂 backend/                          # ═══ PERSONA 2: Valentina Schotborgh ═══
 │   ├── 📄 Dockerfile                    # Imagen del backend
 │   ├── 📄 requirements.txt             # Dependencias Python
 │   └── 📂 app/
@@ -232,7 +232,7 @@ Microservices-platform-UN/
 
 ## 👷 Distribución del Trabajo
 
-### 🔧 Persona 1: Valentina Schotborgh — Infraestructura & Proxy
+### 🔧 Persona 1: Jean Marthé — Infraestructura & Proxy
 
 **Rama:** `feature/infrastructure`
 
@@ -266,7 +266,7 @@ nginx/dynamic/.gitkeep
 
 ---
 
-### ⚙️ Persona 2: Jean Marthé — Backend / Motor de Microservicios
+### ⚙️ Persona 2: Valentina Schotborgh — Backend / Motor de Microservicios
 
 **Rama:** `feature/backend-api`
 
@@ -425,9 +425,9 @@ main ─────────────────────────
   │
   └── develop ──────────────────────────────────────────  (rama de integración)
         │
-        ├── feature/infrastructure ──────── Valentina    (Nginx, Docker Compose)
+        ├── feature/infrastructure ──────── Jean         (Nginx, Docker Compose)
         │
-        ├── feature/backend-api ─────────── Jean         (API Flask, Docker SDK)
+        ├── feature/backend-api ─────────── Valentina    (API Flask, Docker SDK)
         │
         ├── feature/frontend ────────────── Oscar        (Dashboard HTML/JS)
         │
@@ -463,7 +463,7 @@ cd Microservices-platform-UN
 # 2. Cambiar a la rama develop
 git checkout develop
 
-# 3. Crear tu rama de trabajo (ejemplo para Valentina)
+# 3. Crear tu rama de trabajo (ejemplo para Jean)
 git checkout -b feature/infrastructure
 
 # 4. Trabajar, hacer commits
@@ -482,7 +482,7 @@ git push origin feature/infrastructure
 
 ### Semana 1: Setup + Desarrollo Individual
 
-| Día | Valentina (Infra) | Jean (Backend) | Oscar (Frontend) | Alberto (Templates) |
+| Día | Jean (Infra) | Valentina (Backend) | Oscar (Frontend) | Alberto (Templates) |
 |-----|-------------------|----------------|-------------------|---------------------|
 | **1-2** | `docker-compose.yml` base, red Docker, estructura de carpetas | Scaffold del backend Flask, Dockerfile | Estructura HTML base, Dockerfile | Templates Dockerfile para Python y Node.js |
 | **3-4** | Config Nginx reverse proxy, rutas estáticas | Docker SDK: crear/eliminar contenedores | Formulario de creación de microservicios | Wrappers HTTP para Python (Flask) y Node.js (Express) |
