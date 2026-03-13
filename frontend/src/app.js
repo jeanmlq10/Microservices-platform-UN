@@ -153,6 +153,12 @@ btnTest.addEventListener("click", async () => {
 
     try {
         const response = await fetch(fullUrl);
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            testResult.textContent = `❌ Error ${response.status}: El microservicio no responde con JSON.\n\n${text}`;
+            return;
+        }
         const data = await response.json();
         testResult.textContent = JSON.stringify(data, null, 2);
     } catch (err) {
