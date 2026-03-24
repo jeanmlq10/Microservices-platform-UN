@@ -20,5 +20,8 @@ class Config:
     NGINX_DYNAMIC_DIR = os.environ.get("NGINX_DYNAMIC_DIR", "/etc/nginx/dynamic")
     NGINX_CONTAINER_NAME = os.environ.get("NGINX_CONTAINER_NAME", "nginx-proxy")
 
+    # Persistencia
+    SERVICES_STORE_PATH = os.environ.get("SERVICES_STORE_PATH", "/data/services.json")
+
     # Templates
     TEMPLATES_DIR = os.environ.get("TEMPLATES_DIR", "/app/templates")

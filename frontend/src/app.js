@@ -1,11 +1,10 @@
 /**
- * app.js - Lógica del Dashboard de Microservicios
+ * app.js - Logica del Dashboard de Microservicios
  * Consume la API del backend para crear, listar, habilitar, deshabilitar y eliminar microservicios.
  */
 
 const API_BASE = "/api";
 
-// ─── Elementos del DOM ───
 const createForm = document.getElementById("create-form");
 const servicesList = document.getElementById("services-list");
 const createStatus = document.getElementById("create-status");
@@ -16,12 +15,63 @@ const testParams = document.getElementById("test-params");
 const btnTest = document.getElementById("btn-test");
 const testResult = document.getElementById("test-result");
 
-// ─── Cargar microservicios al iniciar ───
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+function normalizeErrorMessage(message) {
+    const lines = String(message || "")
+        .split("\n")
+        .map(line => line.trimEnd())
+        .filter(line => line.trim() !== "");
+
+    return {
+        summary: lines[0] || "Ocurrio un error inesperado.",
+        details: lines.slice(1).join("\n")
+    };
+}
+
+async function readJson(response) {
+    try {
+        return await response.json();
+    } catch {
+        return {};
+    }
+}
+
+function showStatus(message, type) {
+    const payload = typeof message === "string"
+        ? normalizeErrorMessage(message)
+        : {
+            summary: message.summary || "",
+            details: message.details || ""
+        };
+
+    const detailHtml = payload.details
+        ? `<pre class="status-details">${escapeHtml(payload.details)}</pre>`
+        : "";
+
+    createStatus.innerHTML = `
+        <div class="status-summary">${escapeHtml(payload.summary)}</div>
+        ${detailHtml}
+    `;
+    createStatus.className = `status-message ${type}`;
+    createStatus.classList.remove("hidden");
+
+    if (type === "success" || type === "info") {
+        setTimeout(() => createStatus.classList.add("hidden"), 5000);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     loadServices();
 });
 
-// ─── Crear microservicio ───
 createForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -31,13 +81,16 @@ createForm.addEventListener("submit", async (e) => {
     const code = document.getElementById("service-code").value;
 
     if (!name || !code) {
-        showStatus("Por favor completa nombre y código", "error");
+        showStatus("Por favor completa nombre y codigo.", "error");
         return;
     }
 
     btnCreate.disabled = true;
-    btnCreate.textContent = "⏳ Creando...";
-    showStatus("Construyendo imagen Docker y levantando contenedor...", "info");
+    btnCreate.textContent = "Creando...";
+    showStatus({
+        summary: "Construyendo imagen Docker y levantando contenedor...",
+        details: "La plataforma validara el contenedor antes de publicarlo."
+    }, "info");
 
     try {
         const response = await fetch(`${API_BASE}/services`, {
@@ -46,96 +99,129 @@ createForm.addEventListener("submit", async (e) => {
             body: JSON.stringify({ name, language, description, code })
         });
 
-        const data = await response.json();
+        const data = await readJson(response);
 
         if (response.ok) {
-            showStatus(`✅ Microservicio '${name}' creado exitosamente en ${data.endpoint}`, "success");
+            showStatus({
+                summary: `Microservicio '${name}' creado exitosamente.`,
+                details: `Endpoint disponible en ${data.endpoint}`
+            }, "success");
             createForm.reset();
             loadServices();
         } else {
-            showStatus(`❌ Error: ${data.error}`, "error");
+            showStatus(normalizeErrorMessage(data.error), "error");
         }
     } catch (err) {
-        showStatus(`❌ Error de conexión: ${err.message}`, "error");
+        showStatus({
+            summary: "Error de conexion con el backend.",
+            details: err.message
+        }, "error");
     } finally {
         btnCreate.disabled = false;
-        btnCreate.textContent = "🚀 Crear Microservicio";
+        btnCreate.textContent = "Crear Microservicio";
     }
 });
 
-// ─── Cargar lista de microservicios ───
 async function loadServices() {
     try {
         const response = await fetch(`${API_BASE}/services`);
-        const data = await response.json();
+        const data = await readJson(response);
 
-        if (data.services.length === 0) {
-            servicesList.innerHTML = '<p class="empty-state">No hay microservicios creados aún. ¡Crea el primero! 👆</p>';
+        if (!data.services || data.services.length === 0) {
+            servicesList.innerHTML = '<p class="empty-state">No hay microservicios creados aun. Crea el primero.</p>';
             return;
         }
 
         servicesList.innerHTML = data.services.map(service => `
-            <div class="service-card ${service.status === 'running' ? 'running' : 'stopped'}">
+            <div class="service-card ${service.status === "running" ? "running" : "stopped"}">
                 <div class="service-info">
-                    <span class="status-dot ${service.status === 'running' ? 'dot-green' : 'dot-red'}"></span>
+                    <span class="status-dot ${service.status === "running" ? "dot-green" : "dot-red"}"></span>
                     <strong>${service.name}</strong>
-                    <span class="badge badge-${service.language}">${service.language === 'python' ? '🐍 Python' : '🟢 Node.js'}</span>
+                    <span class="badge badge-${service.language}">${service.language === "python" ? "Python" : "Node.js"}</span>
                     <code>${service.endpoint}</code>
-                    <span class="service-desc">${service.description || ''}</span>
+                    <span class="service-desc">${service.description || ""}</span>
                 </div>
                 <div class="service-actions">
-                    <button class="btn-small btn-test" onclick="openTest('${service.name}', '${service.endpoint}')">🧪 Probar</button>
-                    ${service.status === 'running'
-                        ? `<button class="btn-small btn-disable" onclick="disableService('${service.name}')">⏸️ Deshabilitar</button>`
-                        : `<button class="btn-small btn-enable" onclick="enableService('${service.name}')">▶️ Habilitar</button>`
+                    <button class="btn-small btn-test" onclick="openTest('${service.name}', '${service.endpoint}')">Probar</button>
+                    ${service.status === "running"
+                        ? `<button class="btn-small btn-disable" onclick="disableService('${service.name}')">Deshabilitar</button>`
+                        : `<button class="btn-small btn-enable" onclick="enableService('${service.name}')">Habilitar</button>`
                     }
-                    <button class="btn-small btn-delete" onclick="deleteService('${service.name}')">🗑️ Eliminar</button>
+                    <button class="btn-small btn-delete" onclick="deleteService('${service.name}')">Eliminar</button>
                 </div>
             </div>
         `).join("");
-
-    } catch (err) {
-        servicesList.innerHTML = '<p class="error-state">❌ Error al cargar microservicios</p>';
+    } catch {
+        servicesList.innerHTML = '<p class="error-state">No se pudieron cargar los microservicios.</p>';
     }
 }
 
-// ─── Habilitar microservicio ───
 async function enableService(name) {
     try {
         const response = await fetch(`${API_BASE}/services/${name}/enable`, { method: "PUT" });
-        if (response.ok) loadServices();
+        const data = await readJson(response);
+
+        if (response.ok) {
+            showStatus({ summary: `Microservicio '${name}' habilitado.`, details: "" }, "success");
+            loadServices();
+            return;
+        }
+
+        showStatus(normalizeErrorMessage(data.error), "error");
     } catch (err) {
-        alert(`Error al habilitar: ${err.message}`);
+        showStatus({
+            summary: `No se pudo habilitar '${name}'.`,
+            details: err.message
+        }, "error");
     }
 }
 
-// ─── Deshabilitar microservicio ───
 async function disableService(name) {
     try {
         const response = await fetch(`${API_BASE}/services/${name}/disable`, { method: "PUT" });
-        if (response.ok) loadServices();
+        const data = await readJson(response);
+
+        if (response.ok) {
+            showStatus({ summary: `Microservicio '${name}' deshabilitado.`, details: "" }, "info");
+            loadServices();
+            return;
+        }
+
+        showStatus(normalizeErrorMessage(data.error), "error");
     } catch (err) {
-        alert(`Error al deshabilitar: ${err.message}`);
+        showStatus({
+            summary: `No se pudo deshabilitar '${name}'.`,
+            details: err.message
+        }, "error");
     }
 }
 
-// ─── Eliminar microservicio ───
 async function deleteService(name) {
-    if (!confirm(`¿Estás seguro de eliminar el microservicio '${name}'?`)) return;
+    if (!confirm(`Estas seguro de eliminar el microservicio '${name}'?`)) {
+        return;
+    }
 
     try {
         const response = await fetch(`${API_BASE}/services/${name}`, { method: "DELETE" });
+        const data = await readJson(response);
+
         if (response.ok) {
+            showStatus({ summary: `Microservicio '${name}' eliminado.`, details: "" }, "success");
             loadServices();
             testSection.classList.add("hidden");
+            return;
         }
+
+        showStatus(normalizeErrorMessage(data.error), "error");
     } catch (err) {
-        alert(`Error al eliminar: ${err.message}`);
+        showStatus({
+            summary: `No se pudo eliminar '${name}'.`,
+            details: err.message
+        }, "error");
     }
 }
 
-// ─── Abrir panel de prueba ───
-function openTest(name, endpoint) {
+function openTest(_name, endpoint) {
     testSection.classList.remove("hidden");
     testUrl.value = endpoint;
     testParams.value = "";
@@ -143,13 +229,12 @@ function openTest(name, endpoint) {
     testSection.scrollIntoView({ behavior: "smooth" });
 }
 
-// ─── Ejecutar prueba ───
 btnTest.addEventListener("click", async () => {
     const url = testUrl.value;
     const params = testParams.value.trim();
     const fullUrl = params ? `${url}?${params}` : url;
 
-    testResult.textContent = "⏳ Ejecutando...";
+    testResult.textContent = "Ejecutando...";
 
     try {
         const response = await fetch(fullUrl);
@@ -162,17 +247,6 @@ btnTest.addEventListener("click", async () => {
         const data = await response.json();
         testResult.textContent = JSON.stringify(data, null, 2);
     } catch (err) {
-        testResult.textContent = `❌ Error: ${err.message}`;
+        testResult.textContent = `Error: ${err.message}`;
     }
 });
-
-// ─── Mostrar mensaje de estado ───
-function showStatus(message, type) {
-    createStatus.textContent = message;
-    createStatus.className = `status-message ${type}`;
-    createStatus.classList.remove("hidden");
-
-    if (type === "success") {
-        setTimeout(() => createStatus.classList.add("hidden"), 5000);
-    }
-}

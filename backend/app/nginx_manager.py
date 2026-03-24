@@ -4,7 +4,6 @@ Genera archivos de configuración y recarga Nginx cuando se crean/eliminan micro
 """
 
 import os
-import subprocess
 from app.config import Config
 
 
@@ -42,6 +41,20 @@ location /services/{name} {{
         config_path = os.path.join(self.dynamic_dir, f"{name}.conf")
         if os.path.exists(config_path):
             os.remove(config_path)
+
+    def clear_dynamic_configs(self):
+        """Elimina todas las configuraciones dinámicas generadas."""
+        for filename in os.listdir(self.dynamic_dir):
+            if filename.endswith(".conf"):
+                os.remove(os.path.join(self.dynamic_dir, filename))
+
+    def sync_services(self, services):
+        """
+        Reconstruye las configuraciones dinámicas usando solo servicios válidos.
+        """
+        self.clear_dynamic_configs()
+        for service in services:
+            self.add_service(service["name"], service["port"])
 
     def reload(self):
         """
