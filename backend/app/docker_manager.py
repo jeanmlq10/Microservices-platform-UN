@@ -7,8 +7,10 @@ import os
 import tempfile
 import shutil
 import docker
+import ast
+import subprocess
+import time
 from app.config import Config
-
 
 class DockerManager:
     """Gestiona el ciclo de vida de contenedores Docker para microservicios."""
@@ -25,6 +27,49 @@ class DockerManager:
             self.client.networks.get(self.network_name)
         except docker.errors.NotFound:
             self.client.networks.create(self.network_name, driver="bridge")
+    
+    
+    def validate_code(self, language, code):
+        """
+        Valida la sintaxis del código del usuario antes de construir la imagen.
+        Lanza ValueError si el código tiene errores de sintaxis.
+        """
+        if language == "python":
+            try:
+                tree = ast.parse(code)
+            except SyntaxError as e:
+                raise ValueError(f"Error de sintaxis en Python (línea {e.lineno}): {e.msg}")
+
+            # Verificar que define la función process
+            defines_process = any(
+                isinstance(node, ast.FunctionDef) and node.name == "process"
+                for node in ast.walk(tree)
+            )
+            if not defines_process:
+                raise ValueError("El código debe definir una función 'process(data)'")
+
+            # Detectar sentencias peligrosas o mal ubicadas
+            for node in tree.body:
+                if isinstance(node, ast.Expr) and not isinstance(node.value, ast.Constant):
+                    raise ValueError(
+                        f"Línea {node.lineno}: expresión suelta fuera de una función. "
+                        "Coloca todo el código dentro de 'process(data)'"
+                    )
+
+        elif language == "node":
+            tmp = tempfile.NamedTemporaryFile(suffix=".js", mode="w", delete=False)
+            try:
+                tmp.write(code)
+                tmp.close()
+                result = subprocess.run(
+                    ["node", "--check", tmp.name],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode != 0:
+                    raise ValueError(f"Error de sintaxis en Node.js: {result.stderr.strip()}")
+            finally:
+                os.unlink(tmp.name)
 
     def check_connection(self):
         """Verifica la conexión con Docker daemon."""
@@ -120,10 +165,10 @@ class DockerManager:
         port = self._get_next_port()
         image_name = f"ms-{name}:latest"
         container_name = f"ms-{name}"
-
+        # Validar sintaxis del código antes de construir la imagen
+        self.validate_code(language, code)
         # Generar contexto de build
         build_dir = self._build_context(name, language, code)
-
         try:
             # Construir imagen
             self.client.images.build(
@@ -145,8 +190,25 @@ class DockerManager:
                     "service_language": language
                 },
                 network=self.network_name,
-                restart_policy={"Name": "unless-stopped"}
+                restart_policy={"Name": "on-failure", "MaximumRetryCount": 3}
             )
+
+            #Verificación de que el contenedor se levantó correctamente
+            time.sleep(2)
+
+            container.reload()
+
+            if container.status not in ("running", "created"):
+                logs = container.logs(tail=20).decode("utf-8", errors="replace")
+
+                # limpiar recursos si falló
+                container.remove(force=True)
+                try:
+                    self.client.images.remove(image_name, force=True)
+                except Exception:
+                    pass
+
+                raise Exception(f"El contenedor falló al iniciar. Logs:\n{logs}")
 
             return port
 
