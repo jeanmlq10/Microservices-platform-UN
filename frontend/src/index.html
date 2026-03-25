@@ -3,75 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Plataforma de Microservicios UN</title>
+    <title>Plataforma de Microservicios UN</title>
     <link rel="stylesheet" href="styles.css">
+
+    <!-- CodeMirror 5 — Estilos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/dracula.min.css">
 </head>
 <body>
+
     <header>
-        <h1>🚀 Plataforma de Microservicios UN</h1>
-        <p>Crea, administra y elimina microservicios dinámicos con Docker</p>
+        <div class="header-inner">
+            <div class="header-logo">
+                <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
+                    <rect width="38" height="38" rx="10" fill="#b91c1c"/>
+                    <path d="M10 28L19 10L28 28H10Z" fill="white" opacity="0.9"/>
+                    <circle cx="19" cy="22" r="3" fill="#fca5a5"/>
+                </svg>
+                <div>
+                    <h1>Plataforma de Microservicios UN</h1>
+                    <p>Crea, administra y elimina microservicios dinámicos con Docker</p>
+                </div>
+            </div>
+            <div class="header-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Docker Ready
+            </div>
+        </div>
     </header>
 
     <main>
-        <!-- ═══ Sección: Crear Nuevo Microservicio ═══ -->
+        <!-- ═══ Crear Nuevo Microservicio ═══ -->
         <section class="card" id="create-section">
-            <h2>➕ Crear Nuevo Microservicio</h2>
+            <div class="card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <h2>Crear Nuevo Microservicio</h2>
+            </div>
+
             <form id="create-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="service-name">Nombre</label>
+                        <label for="service-name">Nombre del servicio</label>
                         <input type="text" id="service-name" placeholder="ej: hola-mundo" required>
                     </div>
                     <div class="form-group">
                         <label for="service-language">Lenguaje</label>
                         <select id="service-language" required>
-                            <option value="python">🐍 Python</option>
-                            <option value="node">🟢 Node.js</option>
+                            <option value="python">Python</option>
+                            <option value="node">Node.js</option>
                         </select>
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label for="service-description">Descripción</label>
                     <input type="text" id="service-description" placeholder="ej: Mi primer microservicio">
                 </div>
+
+                <!-- ─── Editor de Código ─── -->
                 <div class="form-group">
-                    <label for="service-code">Código Fuente</label>
-                    <textarea id="service-code" rows="10" placeholder="Pega tu código aquí..." required></textarea>
+                    <label>Código Fuente</label>
+                    <div class="editor-wrapper">
+
+                        <!-- Topbar estilo VS Code -->
+                        <div class="editor-topbar">
+                            <div class="editor-topbar-left">
+                                <div class="editor-dots">
+                                    <span class="dot-mac dot-red-mac"></span>
+                                    <span class="dot-mac dot-yellow-mac"></span>
+                                    <span class="dot-mac dot-green-mac"></span>
+                                </div>
+                                <div class="editor-lang-pill" id="editor-lang-label">
+                                    <!-- SVG Python por defecto -->
+                                    <svg id="lang-icon-python" width="14" height="14" viewBox="0 0 256 255" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M126.9 0C62.1 0 66 28.3 66 28.3l.1 29.3h62v8.8H41.2S0 61.5 0 127c0 65.4 36.2 63.1 36.2 63.1h21.6v-30.4s-1.2-36.2 35.6-36.2h61.3s34.4.6 34.4-33.3V34.4S194.6 0 126.9 0zm-34 19.6c6.2 0 11.2 5 11.2 11.2s-5 11.2-11.2 11.2-11.2-5-11.2-11.2 5-11.2 11.2-11.2z" fill="#3776ab"/>
+                                        <path d="M129.1 255c64.8 0 60.9-28.3 60.9-28.3l-.1-29.3h-62v-8.8h86.9S256 193.5 256 128c0-65.4-36.2-63.1-36.2-63.1h-21.6v30.4s1.2 36.2-35.6 36.2h-61.3S67 130.9 67 164.8v62.8S61.4 255 129.1 255zm34-19.6c-6.2 0-11.2-5-11.2-11.2s5-11.2 11.2-11.2 11.2 5 11.2 11.2-5 11.2-11.2 11.2z" fill="#ffd43b"/>
+                                    </svg>
+                                    <svg id="lang-icon-node" width="14" height="14" viewBox="0 0 256 289" xmlns="http://www.w3.org/2000/svg" style="display:none">
+                                        <path d="M128 0L0 72v144l128 72 128-72V72L128 0z" fill="#539e43"/>
+                                        <path d="M128 18l110 62v124L128 266 18 204V80L128 18z" fill="#3c873a"/>
+                                        <path d="M128 52l76 43v86l-76 43-76-43V95l76-43z" fill="#fff"/>
+                                        <path d="M110 168c0 10 7 17 18 17s18-7 18-17v-52h-12v51c0 4-2 6-6 6s-6-2-6-6v-3h-12v4z" fill="#3c873a"/>
+                                    </svg>
+                                    <span id="editor-lang-text">Python</span>
+                                </div>
+                            </div>
+                            <div class="editor-topbar-right">
+                                <button type="button" class="editor-btn" id="btn-template">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Plantilla
+                                </button>
+                                <button type="button" class="editor-btn" id="btn-copy-code">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg>
+                                    Copiar
+                                </button>
+                                <button type="button" class="editor-btn editor-btn-danger" id="btn-clear-code">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" stroke-width="2"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Limpiar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Editor CodeMirror -->
+                        <div id="code-editor"></div>
+
+                        <!-- Statusbar -->
+                        <div class="editor-statusbar">
+                            <span>Ln <span id="editor-line">1</span>, Col <span id="editor-col">1</span></span>
+                            <span id="editor-chars">0 caracteres</span>
+                            <span>UTF-8 · <span id="editor-mode-label">Python</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Textarea oculto para submit -->
+                    <textarea id="service-code" style="display:none;" required></textarea>
                 </div>
-                <button type="submit" id="btn-create">🚀 Crear Microservicio</button>
+
+                <button type="submit" id="btn-create">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Crear Microservicio
+                </button>
             </form>
+
             <div id="create-status" class="status-message hidden"></div>
         </section>
 
-        <!-- ═══ Sección: Microservicios Activos ═══ -->
+        <!-- ═══ Microservicios Registrados ═══ -->
         <section class="card" id="services-section">
-            <h2>📦 Microservicios Registrados</h2>
+            <div class="card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <h2>Microservicios Registrados</h2>
+            </div>
             <div id="services-list">
-                <p class="empty-state">No hay microservicios creados aún. ¡Crea el primero! 👆</p>
+                <p class="empty-state">No hay microservicios creados aún. ¡Crea el primero!</p>
             </div>
         </section>
 
-        <!-- ═══ Sección: Probar Endpoint ═══ -->
+        <!-- ═══ Probar Endpoint ═══ -->
         <section class="card hidden" id="test-section">
-            <h2>🧪 Probar Microservicio</h2>
+            <div class="card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                <h2>Probar Microservicio</h2>
+            </div>
             <div class="form-row">
-                <div class="form-group" style="flex: 1;">
+                <div class="form-group" style="flex: 2;">
                     <label for="test-url">URL del Endpoint</label>
-                    <input type="text" id="test-url" placeholder="/services/hola-mundo?name=Mundo" readonly>
+                    <input type="text" id="test-url" placeholder="/services/hola-mundo" readonly>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="flex: 1;">
                     <label for="test-params">Parámetros (query string)</label>
                     <input type="text" id="test-params" placeholder="name=Mundo&age=25">
                 </div>
             </div>
-            <button id="btn-test">▶️ Ejecutar</button>
+            <button id="btn-test">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+                Ejecutar
+            </button>
             <pre id="test-result" class="result-box"></pre>
         </section>
     </main>
 
     <footer>
-        <p>🐳 Plataforma de Microservicios — Universidad del Norte — 2026</p>
+        <p>Plataforma de Microservicios — Universidad del Norte — 2026</p>
     </footer>
+
+    <!-- CodeMirror 5 — Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/selection/active-line.min.js"></script>
 
     <script src="app.js"></script>
 </body>
