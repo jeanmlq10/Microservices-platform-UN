@@ -1,16 +1,43 @@
 /**
- * app.js - Lógica del Dashboard de Microservicios
- * Consume la API del backend para crear, listar, habilitar, deshabilitar y eliminar microservicios.
+ * app.js — Plataforma de Microservicios UN
  */
 
 const API_BASE = "/api";
+
+// ══════════════════════════════════════════════════════════
+//  SISTEMA DE PESTAÑAS
+// ══════════════════════════════════════════════════════════
+
+function switchTab(tabId) {
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tabId);
+    });
+    document.querySelectorAll(".tab-content").forEach(content => {
+        content.classList.toggle("active", content.id === `tab-${tabId}`);
+    });
+
+    // Acciones al cambiar de pestaña
+    if (tabId === "services") loadServices();
+    if (tabId === "test") {
+        const hasUrl = document.getElementById("test-url").value.trim();
+        document.getElementById("test-empty").style.display = hasUrl ? "none" : "block";
+        document.getElementById("test-panel").style.display = hasUrl ? "block" : "none";
+    }
+    if (tabId === "create") {
+        setTimeout(() => codeEditor.refresh(), 50);
+    }
+}
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
 
 // ══════════════════════════════════════════════════════════
 //  UTILIDADES
 // ══════════════════════════════════════════════════════════
 
 function escapeHtml(value) {
-    return String(value)
+    return String(value ?? "")
         .replaceAll("&", "&amp;")
         .replaceAll("<​", "&lt;")
         .replaceAll(">", "&gt;")
@@ -21,8 +48,8 @@ function escapeHtml(value) {
 function normalizeErrorMessage(message) {
     const lines = String(message || "")
         .split("\n")
-        .map(line => line.trimEnd())
-        .filter(line => line.trim() !== "");
+        .map(l => l.trimEnd())
+        .filter(l => l.trim() !== "");
     return {
         summary: lines[0] || "Ocurrió un error inesperado.",
         details: lines.slice(1).join("\n")
@@ -30,8 +57,7 @@ function normalizeErrorMessage(message) {
 }
 
 async function readJson(response) {
-    try { return await response.json(); }
-    catch { return {}; }
+    try { return await response.json(); } catch { return {}; }
 }
 
 function showStatus(message, type) {
@@ -43,10 +69,7 @@ function showStatus(message, type) {
         ? `<pre class="status-details">${escapeHtml(payload.details)}</pre>`
         : "";
 
-    createStatus.innerHTML = `
-        <div class="status-summary">${escapeHtml(payload.summary)}</div>
-        ${detailHtml}
-    `;
+    createStatus.innerHTML = `<div class="status-summary">${escapeHtml(payload.summary)}</div>${detailHtml}`;
     createStatus.className = `status-message ${type}`;
     createStatus.classList.remove("hidden");
 
@@ -111,10 +134,7 @@ const codeEditor = CodeMirror(document.getElementById("code-editor"), {
 const hiddenTextarea = document.getElementById("service-code");
 hiddenTextarea.value = codeEditor.getValue();
 
-codeEditor.on("change", (cm) => {
-    hiddenTextarea.value = cm.getValue();
-    updateStatusBar(cm);
-});
+codeEditor.on("change", (cm) => { hiddenTextarea.value = cm.getValue(); updateStatusBar(cm); });
 codeEditor.on("cursorActivity", (cm) => updateStatusBar(cm));
 
 function updateStatusBar(cm) {
@@ -124,7 +144,6 @@ function updateStatusBar(cm) {
     document.getElementById("editor-chars").textContent = `${cm.getValue().length} caracteres`;
 }
 
-// Cambiar lenguaje del editor
 document.getElementById("service-language").addEventListener("change", function () {
     const lang = this.value;
     const isPython = lang === "python";
@@ -133,11 +152,9 @@ document.getElementById("service-language").addEventListener("change", function 
     document.getElementById("editor-lang-text").textContent = isPython ? "Python" : "Node.js";
     document.getElementById("editor-mode-label").textContent = isPython ? "Python" : "JavaScript";
 
-    // Alternar icono SVG
     LANG_ICONS.python.style.display = isPython ? "block" : "none";
     LANG_ICONS.node.style.display = isPython ? "none" : "block";
 
-    // Cargar plantilla si el editor está vacío o tiene la plantilla anterior
     const currentVal = codeEditor.getValue().trim();
     const prevTemplate = TEMPLATES[isPython ? "node" : "python"].trim();
     if (currentVal === "" || currentVal === prevTemplate) {
@@ -145,25 +162,19 @@ document.getElementById("service-language").addEventListener("change", function 
     }
 });
 
-// Botón: Copiar
 document.getElementById("btn-copy-code").addEventListener("click", () => {
     navigator.clipboard.writeText(codeEditor.getValue()).then(() => {
         const btn = document.getElementById("btn-copy-code");
         const prev = btn.innerHTML;
-        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Copiado`;
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Copiado`;
         setTimeout(() => btn.innerHTML = prev, 1500);
     });
 });
 
-// Botón: Limpiar
 document.getElementById("btn-clear-code").addEventListener("click", () => {
-    if (confirm("¿Limpiar el editor?")) {
-        codeEditor.setValue("");
-        codeEditor.focus();
-    }
+    if (confirm("¿Limpiar el editor?")) { codeEditor.setValue(""); codeEditor.focus(); }
 });
 
-// Botón: Plantilla
 document.getElementById("btn-template").addEventListener("click", () => {
     const lang = document.getElementById("service-language").value;
     codeEditor.setValue(TEMPLATES[lang]);
@@ -175,10 +186,9 @@ document.getElementById("btn-template").addEventListener("click", () => {
 // ══════════════════════════════════════════════════════════
 
 const createForm = document.getElementById("create-form");
-const servicesList = document.getElementById("services-list");
 const createStatus = document.getElementById("create-status");
 const btnCreate = document.getElementById("btn-create");
-const testSection = document.getElementById("test-section");
+const servicesList = document.getElementById("services-list");
 const testUrl = document.getElementById("test-url");
 const testParams = document.getElementById("test-params");
 const btnTest = document.getElementById("btn-test");
@@ -188,7 +198,12 @@ const testResult = document.getElementById("test-result");
 //  LÓGICA DE LA API
 // ══════════════════════════════════════════════════════════
 
-document.addEventListener("DOMContentLoaded", () => { loadServices(); });
+document.addEventListener("DOMContentLoaded", () => {
+    loadServices();
+    // Mostrar estado inicial del panel de prueba
+    document.getElementById("test-empty").style.display = "block";
+    document.getElementById("test-panel").style.display = "none";
+});
 
 // ─── Crear microservicio ───
 createForm.addEventListener("submit", async (e) => {
@@ -205,12 +220,9 @@ createForm.addEventListener("submit", async (e) => {
     }
 
     btnCreate.disabled = true;
-    btnCreate.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="31.4" stroke-dashoffset="10"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg> Creando...`;
+    btnCreate.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="31.4" stroke-dashoffset="10"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg> Creando...`;
 
-    showStatus({
-        summary: "Construyendo imagen Docker y levantando contenedor...",
-        details: "La plataforma validará el contenedor antes de publicarlo."
-    }, "info");
+    showStatus({ summary: "Construyendo imagen Docker y levantando contenedor...", details: "La plataforma validará el contenedor antes de publicarlo." }, "info");
 
     try {
         const response = await fetch(`${API_BASE}/services`, {
@@ -222,13 +234,10 @@ createForm.addEventListener("submit", async (e) => {
         const data = await readJson(response);
 
         if (response.ok) {
-            showStatus({
-                summary: `Microservicio '${name}' creado exitosamente.`,
-                details: `Endpoint disponible en ${data.endpoint}`
-            }, "success");
+            showStatus({ summary: `Microservicio '${name}' creado exitosamente.`, details: `Endpoint disponible en ${data.endpoint}` }, "success");
             createForm.reset();
             codeEditor.setValue(TEMPLATES[language]);
-            loadServices();
+            updateServicesCount();
         } else {
             showStatus(normalizeErrorMessage(data.error), "error");
         }
@@ -236,7 +245,7 @@ createForm.addEventListener("submit", async (e) => {
         showStatus({ summary: "Error de conexión con el backend.", details: err.message }, "error");
     } finally {
         btnCreate.disabled = false;
-        btnCreate.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Crear Microservicio`;
+        btnCreate.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Crear Microservicio`;
     }
 });
 
@@ -247,12 +256,15 @@ async function loadServices() {
         const data = await readJson(response);
 
         if (!data.services || data.services.length === 0) {
-            servicesList.innerHTML = '<p class="empty-state">No hay microservicios creados aún. ¡Crea el primero!</p>';
+            servicesList.innerHTML = '<p class="empty-state">No hay microservicios creados aún. ¡Crea el primero en la pestaña "Crear Servicio"!</p>';
+            updateServicesCount(0);
             return;
         }
 
-        const pythonSvg = `<svg width="12" height="12" viewBox="0 0 256 255" xmlns="http://www.w3.org/2000/svg"><path d="M126.9 0C62.1 0 66 28.3 66 28.3l.1 29.3h62v8.8H41.2S0 61.5 0 127c0 65.4 36.2 63.1 36.2 63.1h21.6v-30.4s-1.2-36.2 35.6-36.2h61.3s34.4.6 34.4-33.3V34.4S194.6 0 126.9 0zm-34 19.6c6.2 0 11.2 5 11.2 11.2s-5 11.2-11.2 11.2-11.2-5-11.2-11.2 5-11.2 11.2-11.2z" fill="#3776ab"/><path d="M129.1 255c64.8 0 60.9-28.3 60.9-28.3l-.1-29.3h-62v-8.8h86.9S256 193.5 256 128c0-65.4-36.2-63.1-36.2-63.1h-21.6v30.4s1.2 36.2-35.6 36.2h-61.3S67 130.9 67 164.8v62.8S61.4 255 129.1 255zm34-19.6c-6.2 0-11.2-5-11.2-11.2s5-11.2 11.2-11.2 11.2 5 11.2 11.2-5 11.2-11.2 11.2z" fill="#ffd43b"/></svg>`;
-        const nodeSvg = `<svg width="12" height="12" viewBox="0 0 256 289" xmlns="http://www.w3.org/2000/svg"><path d="M128 0L0 72v144l128 72 128-72V72L128 0z" fill="#539e43"/><path d="M110 168c0 10 7 17 18 17s18-7 18-17v-52h-12v51c0 4-2 6-6 6s-6-2-6-6v-3h-12v4z" fill="#fff"/></svg>`;
+        updateServicesCount(data.services.length);
+
+        const pythonSvg = `<svg width="11" height="11" viewBox="0 0 256 255" xmlns="http://www.w3.org/2000/svg"><path d="M126.9 0C62.1 0 66 28.3 66 28.3l.1 29.3h62v8.8H41.2S0 61.5 0 127c0 65.4 36.2 63.1 36.2 63.1h21.6v-30.4s-1.2-36.2 35.6-36.2h61.3s34.4.6 34.4-33.3V34.4S194.6 0 126.9 0z" fill="#3776ab"/><path d="M129.1 255c64.8 0 60.9-28.3 60.9-28.3l-.1-29.3h-62v-8.8h86.9S256 193.5 256 128c0-65.4-36.2-63.1-36.2-63.1h-21.6v30.4s1.2 36.2-35.6 36.2h-61.3S67 130.9 67 164.8v62.8S61.4 255 129.1 255z" fill="#ffd43b"/></svg>`;
+        const nodeSvg = `<svg width="11" height="11" viewBox="0 0 256 289" xmlns="http://www.w3.org/2000/svg"><path d="M128 0L0 72v144l128 72 128-72V72L128 0z" fill="#539e43"/><path d="M110 168c0 10 7 17 18 17s18-7 18-17v-52h-12v51c0 4-2 6-6 6s-6-2-6-6v-3h-12v4z" fill="#fff"/></svg>`;
 
         servicesList.innerHTML = data.services.map(service => `
             <div class="service-card ${service.status === "running" ? "running" : "stopped"}">
@@ -267,7 +279,11 @@ async function loadServices() {
                     <span class="service-desc">${escapeHtml(service.description || "")}</span>
                 </div>
                 <div class="service-actions">
-                    <button class="btn-small btn-test-svc" onclick="openTest('${escapeHtml(service.name)}', '${escapeHtml(service.endpoint)}')">▶ Probar</button>
+                    <button class="btn-small btn-open-svc" onclick="window.open('${escapeHtml(service.endpoint)}', '_blank')" title="Abrir endpoint en nueva pestaña">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        Abrir
+                    </button>
+                    <button class="btn-small btn-test-svc" onclick="openTest('${escapeHtml(service.name)}', '${escapeHtml(service.endpoint)}', '${service.language}')">▶ Probar</button>
                     ${service.status === "running"
                 ? `<button class="btn-small btn-disable" onclick="disableService('${escapeHtml(service.name)}')">⏸ Deshabilitar</button>`
                 : `<button class="btn-small btn-enable"  onclick="enableService('${escapeHtml(service.name)}')">▶ Habilitar</button>`
@@ -281,16 +297,28 @@ async function loadServices() {
     }
 }
 
+function updateServicesCount(count) {
+    const badge = document.getElementById("services-count");
+    if (count === undefined) {
+        fetch(`${API_BASE}/services`).then(r => r.json()).then(d => {
+            const n = d.services?.length ?? 0;
+            badge.textContent = n;
+            badge.style.display = n > 0 ? "inline-flex" : "none";
+        }).catch(() => { });
+        return;
+    }
+    badge.textContent = count;
+    badge.style.display = count > 0 ? "inline-flex" : "none";
+}
+
 // ─── Habilitar ───
 async function enableService(name) {
     try {
         const response = await fetch(`${API_BASE}/services/${name}/enable`, { method: "PUT" });
         const data = await readJson(response);
-        if (response.ok) { showStatus({ summary: `Microservicio '${name}' habilitado.`, details: "" }, "success"); loadServices(); return; }
-        showStatus(normalizeErrorMessage(data.error), "error");
-    } catch (err) {
-        showStatus({ summary: `No se pudo habilitar '${name}'.`, details: err.message }, "error");
-    }
+        if (response.ok) { loadServices(); return; }
+        alert(data.error || "Error al habilitar");
+    } catch (err) { alert(err.message); }
 }
 
 // ─── Deshabilitar ───
@@ -298,33 +326,36 @@ async function disableService(name) {
     try {
         const response = await fetch(`${API_BASE}/services/${name}/disable`, { method: "PUT" });
         const data = await readJson(response);
-        if (response.ok) { showStatus({ summary: `Microservicio '${name}' deshabilitado.`, details: "" }, "info"); loadServices(); return; }
-        showStatus(normalizeErrorMessage(data.error), "error");
-    } catch (err) {
-        showStatus({ summary: `No se pudo deshabilitar '${name}'.`, details: err.message }, "error");
-    }
+        if (response.ok) { loadServices(); return; }
+        alert(data.error || "Error al deshabilitar");
+    } catch (err) { alert(err.message); }
 }
 
 // ─── Eliminar ───
 async function deleteService(name) {
-    if (!confirm(`¿Estás seguro de eliminar el microservicio '${name}'?`)) return;
+    if (!confirm(`¿Eliminar el microservicio '${name}'?`)) return;
     try {
         const response = await fetch(`${API_BASE}/services/${name}`, { method: "DELETE" });
         const data = await readJson(response);
-        if (response.ok) { showStatus({ summary: `Microservicio '${name}' eliminado.`, details: "" }, "success"); loadServices(); testSection.classList.add("hidden"); return; }
-        showStatus(normalizeErrorMessage(data.error), "error");
-    } catch (err) {
-        showStatus({ summary: `No se pudo eliminar '${name}'.`, details: err.message }, "error");
-    }
+        if (response.ok) { loadServices(); return; }
+        alert(data.error || "Error al eliminar");
+    } catch (err) { alert(err.message); }
 }
 
 // ─── Abrir panel de prueba ───
-function openTest(_name, endpoint) {
-    testSection.classList.remove("hidden");
+function openTest(name, endpoint, language) {
     testUrl.value = endpoint;
     testParams.value = "";
     testResult.textContent = "// Haz clic en 'Ejecutar' para probar el endpoint";
-    testSection.scrollIntoView({ behavior: "smooth" });
+
+    document.getElementById("test-service-name").textContent = name;
+    document.getElementById("test-service-badge").textContent = language === "python" ? "Python" : "Node.js";
+    document.getElementById("test-service-badge").className = `badge badge-${language}`;
+    document.getElementById("test-service-info").style.display = "flex";
+    document.getElementById("test-empty").style.display = "none";
+    document.getElementById("test-panel").style.display = "block";
+
+    switchTab("test");
 }
 
 // ─── Ejecutar prueba ───
@@ -338,9 +369,9 @@ btnTest.addEventListener("click", async () => {
     try {
         const response = await fetch(fullUrl);
         const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
+        if (!contentType?.includes("application/json")) {
             const text = await response.text();
-            testResult.textContent = `❌ Error ${response.status}: El microservicio no responde con JSON.\n\n${text}`;
+            testResult.textContent = `Error ${response.status}: El microservicio no responde con JSON.\n\n${text}`;
             return;
         }
         const data = await response.json();
@@ -349,3 +380,6 @@ btnTest.addEventListener("click", async () => {
         testResult.textContent = `Error: ${err.message}`;
     }
 });
+
+// ─── Botón refresh ───
+document.getElementById("btn-refresh").addEventListener("click", loadServices);
