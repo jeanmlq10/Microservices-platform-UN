@@ -15,6 +15,7 @@
 - [Estrategia de Ramas Git](#-estrategia-de-ramas-git)
 - [Cronograma de Trabajo](#-cronograma-de-trabajo)
 - [Instalación y Ejecución](#-instalación-y-ejecución)
+- [Cambios Recientes](#-cambios-recientes)
 - [Uso del Dashboard](#-uso-del-dashboard)
 - [Ejemplos Funcionales](#-ejemplos-funcionales)
 - [API Reference](#-api-reference)
@@ -206,6 +207,9 @@ Microservices-platform-UN/
 │       ├── 📄 nginx_manager.py         # Genera y recarga configs de Nginx
 │       ├── 📄 models.py                # Modelos de datos (info de microservicios)
 │       └── 📄 config.py                # Configuración de la aplicación
+│
+├── 📦 backend-data/                    # Volumen Docker para persistir services.json
+├── 📦 nginx-dynamic/                   # Volumen Docker compartido para configs dinámicas
 │
 ├── 📂 frontend/                         # ═══ PERSONA 3: Oscar Gil ═══
 │   ├── 📄 Dockerfile                    # Imagen del frontend (Nginx sirve estáticos)
@@ -532,6 +536,42 @@ docker-compose down
 docker-compose down -v --remove-orphans
 ```
 
+### Limpieza de microservicios creados
+
+```bash
+# Ver los microservicios registrados
+curl http://localhost/api/services
+
+# Eliminar uno específico
+curl -X DELETE http://localhost/api/services/nombre-del-servicio
+
+# Reinicio completo con volúmenes
+docker-compose down -v --remove-orphans
+```
+
+---
+
+## 🔄 Cambios Recientes
+
+### Persistencia del catálogo de servicios
+
+- El backend ahora persiste la metadata de los microservicios en `/data/services.json`.
+- Se agregó el volumen Docker `backend-data` para conservar `name`, `description`, `language`, `code`, `created_at`, `port` y `status` entre reinicios.
+- Al arrancar, el backend rehidrata el catálogo desde ese archivo y luego lo sincroniza con el estado real de Docker.
+
+### Reconciliación automática de Nginx
+
+- Se mantuvo el volumen compartido `nginx-dynamic`, pero ahora el backend reconstruye su contenido al inicio.
+- Si existen archivos `.conf` huérfanos de microservicios caídos o eliminados, se limpian antes de recargar `nginx`.
+- Esto evita que `nginx` falle al arrancar por upstreams inexistentes.
+
+### Validación más estricta al crear microservicios
+
+- La creación ya no da por exitoso un microservicio solo porque `docker run` respondió.
+- El backend espera a que el contenedor quede estable antes de registrarlo en la API y antes de publicarlo por `nginx`.
+- Si el contenedor falla al iniciar, la API responde con error y devuelve los logs del contenedor.
+- En Node.js ya no se depende de ejecutar `node --check` dentro del contenedor backend; la validación real ocurre con el arranque del microservicio.
+
 ---
 
 ## 💻 Uso del Dashboard
@@ -545,7 +585,7 @@ docker-compose down -v --remove-orphans
    - Seleccionar el **lenguaje** (Python o Node.js)
    - Pegar el **código fuente** en el textarea
 3. Hacer clic en **"Crear Microservicio"**
-4. Esperar a que el estado cambie a 🟢 **Activo**
+4. Esperar a que el backend valide que el contenedor arrancó correctamente
 5. El microservicio estará disponible en: `http://localhost/services/hola-mundo`
 
 ### Administrar Microservicios
@@ -555,6 +595,8 @@ docker-compose down -v --remove-orphans
 - **Deshabilitar**: Detiene el contenedor sin eliminarlo
 - **Habilitar**: Reinicia un contenedor deshabilitado
 - **Eliminar**: Elimina el contenedor y la imagen asociada
+- **Persistencia**: Si reinicias el backend, el catálogo se reconstruye desde `services.json` y desde Docker
+- **Recuperación**: Si reinicias toda la plataforma, `nginx` limpia automáticamente configuraciones dinámicas huérfanas
 
 ---
 
@@ -681,6 +723,260 @@ curl "http://localhost/services/suma-node?a=15&b=27"
   "sum": 42,
   "language": "Node.js"
 }
+```
+
+---
+
+## 🧪 Casos de Prueba para Pegar
+
+### Tabla Resumen
+
+| Nombre sugerido | Lenguaje | Tipo | Parametros para probar |
+|-----------------|----------|------|------------------------|
+| `py-hola-ok` | Python | Bueno | `name=Jean` |
+| `py-suma-ok` | Python | Bueno | `a=15&b=27` |
+| `py-eco-ok` | Python | Bueno | `x=1&y=2` |
+| `py-sin-process` | Python | Malo | No aplica |
+| `py-global-invalido` | Python | Malo | No aplica |
+| `node-hola-ok` | Node.js | Bueno | `name=Jean` |
+| `node-suma-ok` | Node.js | Bueno | `a=15&b=27` |
+| `node-eco-ok` | Node.js | Bueno | `foo=bar&n=9` |
+| `node-sin-export` | Node.js | Malo | No aplica |
+| `node-sintaxis` | Node.js | Malo | No aplica |
+| `node-runtime` | Node.js | Malo en runtime | Vacio |
+
+### Python Bueno 1 - Hola Mundo
+
+**Nombre sugerido:** `py-hola-ok`
+
+```python
+def process(data):
+    name = data.get("name", "Mundo")
+    return {
+        "message": f"Hola {name}!",
+        "language": "Python"
+    }
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+name=Jean
+```
+
+### Python Bueno 2 - Suma
+
+**Nombre sugerido:** `py-suma-ok`
+
+```python
+def process(data):
+    a = float(data.get("a", 0))
+    b = float(data.get("b", 0))
+    return {
+        "a": a,
+        "b": b,
+        "sum": a + b,
+        "language": "Python"
+    }
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+a=15&b=27
+```
+
+### Python Bueno 3 - Eco de Parametros
+
+**Nombre sugerido:** `py-eco-ok`
+
+```python
+def process(data):
+    return {
+        "received": dict(data),
+        "count": len(data)
+    }
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+x=1&y=2
+```
+
+### Python Malo 1 - No Define process
+
+**Nombre sugerido:** `py-sin-process`
+
+```python
+def otra(data):
+    return {"ok": True}
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+No aplica. Debe fallar al crear.
+```
+
+### Python Malo 2 - Codigo Fuera de process
+
+**Nombre sugerido:** `py-global-invalido`
+
+```python
+x = 10
+
+def process(data):
+    return {"x": x}
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+No aplica. Debe fallar al crear.
+```
+
+### Node Bueno 1 - Hola Mundo
+
+**Nombre sugerido:** `node-hola-ok`
+
+```javascript
+function process(data) {
+    const name = data.name || "Mundo";
+    return {
+        message: `Hola ${name}!`,
+        language: "Node.js"
+    };
+}
+
+module.exports = process;
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+name=Jean
+```
+
+### Node Bueno 2 - Suma
+
+**Nombre sugerido:** `node-suma-ok`
+
+```javascript
+function process(data) {
+    const a = parseFloat(data.a) || 0;
+    const b = parseFloat(data.b) || 0;
+
+    return {
+        a,
+        b,
+        sum: a + b,
+        language: "Node.js"
+    };
+}
+
+module.exports = process;
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+a=15&b=27
+```
+
+### Node Bueno 3 - Eco de Parametros
+
+**Nombre sugerido:** `node-eco-ok`
+
+```javascript
+function process(data) {
+    return {
+        received: data,
+        keys: Object.keys(data)
+    };
+}
+
+module.exports = process;
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+foo=bar&n=9
+```
+
+### Node Malo 1 - Falta Export
+
+**Nombre sugerido:** `node-sin-export`
+
+```javascript
+function process(data) {
+    return { ok: true };
+}
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+No aplica. Debe fallar al crear.
+```
+
+### Node Malo 2 - Error de Sintaxis
+
+**Nombre sugerido:** `node-sintaxis`
+
+```javascript
+function process(data) {
+    const x = ;
+    return { ok: true };
+}
+
+module.exports = process;
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+No aplica. Debe fallar al crear.
+```
+
+### Node Malo 3 - Error en Runtime
+
+**Nombre sugerido:** `node-runtime`
+
+```javascript
+function process(data) {
+    throw new Error("fallo controlado");
+}
+
+module.exports = process;
+```
+
+**Parámetros para probar en el dashboard:**
+
+```text
+Dejar vacio
+```
+
+**Resultado esperado al probarlo:**
+
+```json
+{
+  "error": "fallo controlado"
+}
+```
+
+### Resumen Rapido de Parametros
+
+```text
+py-hola-ok      -> name=Jean
+py-suma-ok      -> a=15&b=27
+py-eco-ok       -> x=1&y=2
+node-hola-ok    -> name=Jean
+node-suma-ok    -> a=15&b=27
+node-eco-ok     -> foo=bar&n=9
+node-runtime    -> vacio
+casos malos     -> no aplica, deben fallar al crear
 ```
 
 ---

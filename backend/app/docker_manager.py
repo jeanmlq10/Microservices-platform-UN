@@ -3,12 +3,15 @@ docker_manager.py - Gestión de contenedores Docker
 Usa el Docker SDK para Python para construir imágenes, crear y eliminar contenedores.
 """
 
+import ast
 import os
-import tempfile
+import re
 import shutil
+import tempfile
+import time
+
 import docker
 from app.config import Config
-
 
 class DockerManager:
     """Gestiona el ciclo de vida de contenedores Docker para microservicios."""
@@ -25,6 +28,46 @@ class DockerManager:
             self.client.networks.get(self.network_name)
         except docker.errors.NotFound:
             self.client.networks.create(self.network_name, driver="bridge")
+    
+    
+    def validate_code(self, language, code):
+        """
+        Valida la sintaxis del código del usuario antes de construir la imagen.
+        Lanza ValueError si el código tiene errores de sintaxis.
+        """
+        if language == "python":
+            try:
+                tree = ast.parse(code)
+            except SyntaxError as e:
+                raise ValueError(f"Error de sintaxis en Python (línea {e.lineno}): {e.msg}")
+
+            # Verificar que define la función process
+            defines_process = any(
+                isinstance(node, ast.FunctionDef) and node.name == "process"
+                for node in ast.walk(tree)
+            )
+            if not defines_process:
+                raise ValueError("El código debe definir una función 'process(data)'")
+
+            # Solo se permite un docstring opcional y la función process(data) en el nivel superior.
+            for node in tree.body:
+                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
+                    continue
+
+                if isinstance(node, ast.FunctionDef) and node.name == "process":
+                    continue
+
+                raise ValueError(
+                    f"Línea {node.lineno}: no se permite código fuera de 'process(data)'. "
+                    "Mueve variables, imports y lógica auxiliar dentro de esa función."
+                )
+
+        elif language == "node":
+            if "module.exports" not in code:
+                raise ValueError(
+                    "El código Node.js debe exportar la función principal con "
+                    "'module.exports = process'"
+                )
 
     def check_connection(self):
         """Verifica la conexión con Docker daemon."""
@@ -50,6 +93,96 @@ class DockerManager:
         while port in used_ports:
             port += 1
         return port
+
+    def list_managed_services(self, all_containers=False):
+        """
+        Lista los microservicios administrados por la plataforma.
+        Por defecto retorna solo los que están corriendo.
+        """
+        containers = self.client.containers.list(
+            all=all_containers,
+            filters={"label": "platform=microservices-un"}
+        )
+
+        services = []
+        for container in containers:
+            labels = container.labels
+            service_name = labels.get("service_name")
+            service_port = labels.get("service_port")
+
+            if not service_name or not service_port:
+                continue
+
+            services.append({
+                "name": service_name,
+                "port": int(service_port),
+                "language": labels.get("service_language"),
+                "status": container.status,
+                "container_name": container.name
+            })
+
+        return services
+
+    def _format_startup_error(self, logs):
+        """
+        Intenta resumir errores comunes de arranque para mostrarlos de forma amigable.
+        """
+        node_match = re.search(
+            r"/app/user_code\.js:(\d+).*?SyntaxError:\s*(.+)",
+            logs,
+            re.DOTALL
+        )
+        if node_match:
+            line = node_match.group(1)
+            message = node_match.group(2).splitlines()[0].strip()
+            return f"Error de sintaxis en Node.js (línea {line}): {message}"
+
+        python_match = re.search(
+            r'File "/app/user_code\.py", line (\d+).*?SyntaxError:\s*(.+)',
+            logs,
+            re.DOTALL
+        )
+        if python_match:
+            line = python_match.group(1)
+            message = python_match.group(2).splitlines()[0].strip()
+            return f"Error de sintaxis en Python (línea {line}): {message}"
+
+        return None
+
+    def _wait_for_container_startup(self, container, timeout=10, stable_seconds=2):
+        """
+        Espera a que el contenedor quede estable o falle durante el arranque.
+        """
+        deadline = time.time() + timeout
+
+        while time.time() < deadline:
+            container.reload()
+
+            if container.status == "running":
+                time.sleep(stable_seconds)
+                container.reload()
+                if container.status == "running":
+                    return
+
+            if container.status in {"exited", "dead"}:
+                logs = container.logs(tail=50).decode("utf-8", errors="replace").strip()
+                friendly_error = self._format_startup_error(logs)
+                if friendly_error:
+                    raise Exception(friendly_error)
+                raise Exception(
+                    "El contenedor del microservicio no inició correctamente.\n"
+                    f"Estado: {container.status}\n"
+                    f"Logs:\n{logs or '(sin logs)'}"
+                )
+
+            time.sleep(0.5)
+
+        container.reload()
+        if container.status != "running":
+            raise Exception(
+                "El contenedor del microservicio no alcanzó el estado 'running' "
+                f"dentro de {timeout} segundos. Estado actual: {container.status}"
+            )
 
     def _build_context(self, name, language, code):
         """
@@ -120,10 +253,10 @@ class DockerManager:
         port = self._get_next_port()
         image_name = f"ms-{name}:latest"
         container_name = f"ms-{name}"
-
+        # Validar sintaxis del código antes de construir la imagen
+        self.validate_code(language, code)
         # Generar contexto de build
         build_dir = self._build_context(name, language, code)
-
         try:
             # Construir imagen
             self.client.images.build(
@@ -144,10 +277,11 @@ class DockerManager:
                     "service_port": str(port),
                     "service_language": language
                 },
-                network=self.network_name,
-                restart_policy={"Name": "unless-stopped"}
+                network=self.network_name
             )
 
+            self._wait_for_container_startup(container)
+            container.update(restart_policy={"Name": "unless-stopped"})
             return port
 
         finally:

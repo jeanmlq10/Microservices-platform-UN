@@ -1,4 +1,3 @@
-version: "3.8"
 
 # ═══════════════════════════════════════════════════════════
 #  Plataforma de Microservicios Dinámicos - UN
@@ -27,8 +26,8 @@ services:
   # ─── Backend API (Motor de Microservicios) ───
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: backend-api
     environment:
       - FLASK_DEBUG=${FLASK_DEBUG:-false}
@@ -36,12 +35,15 @@ services:
       - BASE_PORT=${BASE_PORT:-9001}
       - NGINX_DYNAMIC_DIR=/shared/nginx-dynamic
       - NGINX_CONTAINER_NAME=nginx-proxy
+      - SERVICES_STORE_PATH=/data/services.json
       - TEMPLATES_DIR=/app/templates
     volumes:
       # Montar Docker socket para gestionar contenedores
       - /var/run/docker.sock:/var/run/docker.sock
       # Compartir directorio de configs dinámicas con Nginx
       - nginx-dynamic:/shared/nginx-dynamic
+      # Persistir metadata de microservicios
+      - backend-data:/data
       # Montar templates
       - ./templates:/app/templates:ro
     networks:
@@ -67,4 +69,6 @@ networks:
 # ─── Volúmenes compartidos ───
 volumes:
   nginx-dynamic:
+    driver: local
+  backend-data:
     driver: local
