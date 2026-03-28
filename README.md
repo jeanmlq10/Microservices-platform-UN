@@ -1076,7 +1076,7 @@ GET /api/health
 
 ## 🎥 Video de Demostración
 
-> 📹 [Enlace al video en YouTube](#) *(pendiente de grabación)*
+> 📹 [https://youtu.be/Jv_dUtZmEjo?si=T4J-PQkasm53itF1]
 
 El video mostrará:
 1. Levantamiento de la plataforma con `docker-compose up`
@@ -1191,7 +1191,7 @@ Este proyecto es parte de una actividad académica de la **Universidad del Norte
 
 <div align="center">
 
-**Hecho con 🐳 Docker y ☕ mucho café**
+**Hecho con 🐳 Docker**
 
 *Universidad del Norte — Plataforma de Microservicios — 2026*
 
